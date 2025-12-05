@@ -10,8 +10,8 @@
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
 
 #define PANEL_WIDTH   80
-#define PANEL_HEIGHT  40
-#define PANEL_CHAIN   1   // set correct number of chained panels
+#define PANEL_HEIGHT  20
+#define PANEL_CHAIN   2   // set correct number of chained panels
 
 // ---------------- PIN MAP ----------------
 HUB75_I2S_CFG mxconfig(PANEL_WIDTH, PANEL_HEIGHT, PANEL_CHAIN);
@@ -82,8 +82,8 @@ void handleDisplayPost() {
 
 void drawTextOnPanel() {
   dma_display->fillScreen(0);
-  dma_display->setCursor(5, 20);
-  dma_display->setTextSize(1);
+  dma_display->setCursor(0, 0);
+  dma_display->setTextSize(2);
   dma_display->setTextColor(dma_display->color565(255, 255, 0));
   dma_display->print(currentText);
 }

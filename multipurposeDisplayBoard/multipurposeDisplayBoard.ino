@@ -1,15 +1,23 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
+#include <Wire.h>
+#include <WiFiManager.h>
+#include <ESPmDNS.h>
+#include <WiFiMulti.h>
+
 
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
 
 #define PANEL_WIDTH   80
 #define PANEL_HEIGHT  40
-#define PANEL_CHAIN   2   // set correct number of chained panels
+#define PANEL_CHAIN   1   // set correct number of chained panels
 
 // ---------------- PIN MAP ----------------
 HUB75_I2S_CFG mxconfig(PANEL_WIDTH, PANEL_HEIGHT, PANEL_CHAIN);
+String newHostname = "matrixmaestro-esp32";
+const uint32_t connectTimeoutMs = 5000;
+WiFiMulti wifiMulti;
 
 void setupPins() {
   mxconfig.gpio.r1 = 25;
@@ -83,23 +91,51 @@ void drawTextOnPanel() {
 void setup() {
   Serial.begin(115200);
   setupPins();
-
   dma_display = new MatrixPanel_I2S_DMA(mxconfig);
   dma_display->begin();
   dma_display->setBrightness8(160);
+  // Setup WiFi
+  Serial.println(F("Setting AP (Access Point)..."));
+  WiFiManager wm;
 
-  WiFi.begin(ssid, password);
-  Serial.println("Connecting to WiFi...");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  // OPTIONAL: reset saved WiFi creds for testing
+  // wm.resetSettings();
+
+  Serial.println("Connecting to saved WiFi...");
+
+  bool res = wm.autoConnect("ShauryasNet-jiofi", "ucD8KFvW");
+  // AP name: MatrixMaestro-Setup
+  // password: 12345678 (you can remove the password if you want open AP)
+
+  if (!res) {
+    Serial.println("Failed to connect. Rebooting...");
+    delay(2000);
+    ESP.restart();
   }
 
-  Serial.println("\nConnected! IP:");
+  Serial.println("WiFi connected!");
+  Serial.print("IP: ");
   Serial.println(WiFi.localIP());
 
+  // Start MDNS
+  if (MDNS.begin("matrixmaestro-esp32")) {
+    Serial.println("mDNS responder started: http://matrixmaestro-esp32.local");
+  } else {
+    Serial.println("Error setting up MDNS responder!");
+  }
+  server.onNotFound([]() {
+    if (server.method() == HTTP_OPTIONS) {
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      server.sendHeader("Access-Control-Allow-Headers", "*");
+      server.send(204);  // No Content for preflight requests
+    } else {
+      server.send(404, "text/plain", "Not found");
+    }
+  });
   server.on("/display", handleDisplayPost);
   server.begin();
+  Serial.println(F("Webserver started..."));
 }
 
 void loop() {

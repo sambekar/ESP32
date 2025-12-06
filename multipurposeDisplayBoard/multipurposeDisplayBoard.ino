@@ -86,9 +86,9 @@ void handleDisplayPost() {
 
 void drawTextOnPanel() {
   virtualDisp->fillScreen(0);
-  virtualDisp->setCursor(0, 0);
-  virtualDisp->setTextSize(2);
-  virtualDisp->setTextColor(dma_display->color565(255, 255, 0));
+  virtualDisp->setCursor(0, 2);
+  virtualDisp->setTextSize(2.5);
+  virtualDisp->setTextColor(dma_display->color565(255, 255, 255));
   virtualDisp->clearScreen();
   virtualDisp->print(currentText);
 }
@@ -105,21 +105,7 @@ void setup() {
   dma_display->clearScreen();
   virtualDisp = new VirtualMatrixPanel_T<PANEL_CHAIN_TYPE, MyScanTypeMapping>(VDISP_NUM_ROWS, VDISP_NUM_COLS, PANEL_RES_X, PANEL_RES_Y);
   virtualDisp->setDisplay(*dma_display);
-  /*for (int y = 0; y < virtualDisp->height(); y++) {
-     for (int x = 0; x < virtualDisp->width(); x++) {
- 
-       uint16_t color = virtualDisp->color565(96, 0, 0); // red
- 
-       if (x == 0)   color = virtualDisp->color565(0, 255, 0); // g
-       if (x == (virtualDisp->width()-1)) color = virtualDisp->color565(0, 0, 255); // b
- 
-       virtualDisp->drawPixel(x, y, color);
-       delay(1);
-     }
-   }*/
-   //virtualDisp->drawLine(virtualDisp->width() - 1, virtualDisp->height() - 1, 0, 0, virtualDisp->color565(255, 255, 255));
-   
-   virtualDisp->print(currentText);
+  virtualDisp->print(currentText);
 
    //delay(3000);
    //virtualDisp->clearScreen();

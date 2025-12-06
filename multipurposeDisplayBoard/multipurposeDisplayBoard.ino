@@ -5,20 +5,25 @@
 #include <WiFiManager.h>
 #include <ESPmDNS.h>
 #include <WiFiMulti.h>
-
-
-#include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
-
-#define PANEL_WIDTH   80
-#define PANEL_HEIGHT  20
-#define PANEL_CHAIN   2   // set correct number of chained panels
+#include <Arduino.h>
+#include <ESP32-HUB75-VirtualMatrixPanel_T.hpp>
+#define PANEL_RES_X     80
+#define PANEL_RES_Y     40
+#define VDISP_NUM_ROWS      1 // Number of rows of individual LED panels 
+#define VDISP_NUM_COLS      1
+#define PANEL_CHAIN_LEN     (VDISP_NUM_ROWS*VDISP_NUM_COLS)
+#define PANEL_CHAIN_TYPE CHAIN_NONE
+#define PANEL_SCAN_TYPE  FOUR_SCAN_40PX_HIGH
+MatrixPanel_I2S_DMA *dma_display = nullptr;
+using MyScanTypeMapping = ScanTypeMapping<PANEL_SCAN_TYPE>;
+VirtualMatrixPanel_T<PANEL_CHAIN_TYPE, MyScanTypeMapping>* virtualDisp = nullptr;
 
 // ---------------- PIN MAP ----------------
-HUB75_I2S_CFG mxconfig(PANEL_WIDTH, PANEL_HEIGHT, PANEL_CHAIN);
+
 String newHostname = "matrixmaestro-esp32";
 const uint32_t connectTimeoutMs = 5000;
 WiFiMulti wifiMulti;
-
+HUB75_I2S_CFG mxconfig(PANEL_RES_X*2,PANEL_RES_Y/2,PANEL_CHAIN_LEN);
 void setupPins() {
   mxconfig.gpio.r1 = 25;
   mxconfig.gpio.g1 = 26;
@@ -38,8 +43,6 @@ void setupPins() {
   mxconfig.gpio.oe  = 15;
   mxconfig.gpio.clk = 16;
 }
-
-MatrixPanel_I2S_DMA *dma_display = nullptr;
 
 // ---------------- WiFi ----------------
 const char* ssid     = "ShauryasNet-kitchen-2.4GHz";
@@ -78,22 +81,49 @@ void handleDisplayPost() {
 
   Serial.print("Updated display text: ");
   Serial.println(currentText);
+  drawTextOnPanel();
 }
 
 void drawTextOnPanel() {
-  dma_display->fillScreen(0);
-  dma_display->setCursor(0, 0);
-  dma_display->setTextSize(2);
-  dma_display->setTextColor(dma_display->color565(255, 255, 0));
-  dma_display->print(currentText);
+  virtualDisp->fillScreen(0);
+  virtualDisp->setCursor(0, 0);
+  virtualDisp->setTextSize(2);
+  virtualDisp->setTextColor(dma_display->color565(255, 255, 0));
+  virtualDisp->clearScreen();
+  virtualDisp->print(currentText);
 }
 
 void setup() {
   Serial.begin(115200);
-  setupPins();
+  
+  setupPins();  
+  mxconfig.i2sspeed = HUB75_I2S_CFG::HZ_10M;
+  mxconfig.clkphase = false;
   dma_display = new MatrixPanel_I2S_DMA(mxconfig);
   dma_display->begin();
-  dma_display->setBrightness8(160);
+  dma_display->setBrightness8(128); //0-255
+  dma_display->clearScreen();
+  virtualDisp = new VirtualMatrixPanel_T<PANEL_CHAIN_TYPE, MyScanTypeMapping>(VDISP_NUM_ROWS, VDISP_NUM_COLS, PANEL_RES_X, PANEL_RES_Y);
+  virtualDisp->setDisplay(*dma_display);
+  /*for (int y = 0; y < virtualDisp->height(); y++) {
+     for (int x = 0; x < virtualDisp->width(); x++) {
+ 
+       uint16_t color = virtualDisp->color565(96, 0, 0); // red
+ 
+       if (x == 0)   color = virtualDisp->color565(0, 255, 0); // g
+       if (x == (virtualDisp->width()-1)) color = virtualDisp->color565(0, 0, 255); // b
+ 
+       virtualDisp->drawPixel(x, y, color);
+       delay(1);
+     }
+   }*/
+   //virtualDisp->drawLine(virtualDisp->width() - 1, virtualDisp->height() - 1, 0, 0, virtualDisp->color565(255, 255, 255));
+   
+   virtualDisp->print(currentText);
+
+   //delay(3000);
+   //virtualDisp->clearScreen();
+   //virtualDisp->drawDisplayTest();
   // Setup WiFi
   Serial.println(F("Setting AP (Access Point)..."));
   WiFiManager wm;
@@ -140,6 +170,5 @@ void setup() {
 
 void loop() {
   server.handleClient();
-  drawTextOnPanel();
   delay(50);
 }

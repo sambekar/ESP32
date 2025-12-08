@@ -7,7 +7,7 @@
 #include <WiFiMulti.h>
 #include <Arduino.h>
 #include <ESP32-HUB75-VirtualMatrixPanel_T.hpp>
-#include <Fonts/FreeSans9pt7b.h>
+#include <Fonts/FreeSans24pt7b.h>
 #define PANEL_RES_X     80
 #define PANEL_RES_Y     40
 #define VDISP_NUM_ROWS      2 // Number of rows of individual LED panels, change to 1 for single panel
@@ -86,10 +86,10 @@ void handleDisplayPost() {
 }
 
 void drawTextOnPanel() {
-  virtualDisp->setFont(&FreeSans9pt7b);
+  virtualDisp->setFont(&FreeSans24pt7b);
   virtualDisp->fillScreen(0);
   virtualDisp->setCursor(0, 30);
-  virtualDisp->setTextSize(0.5);
+  virtualDisp->setTextSize(1);
   virtualDisp->setTextColor(dma_display->color565(0, 255, 255));
   virtualDisp->clearScreen();
   virtualDisp->print(currentText);

@@ -7,12 +7,13 @@
 #include <WiFiMulti.h>
 #include <Arduino.h>
 #include <ESP32-HUB75-VirtualMatrixPanel_T.hpp>
+#include <Fonts/FreeSans9pt7b.h>
 #define PANEL_RES_X     80
 #define PANEL_RES_Y     40
-#define VDISP_NUM_ROWS      1 // Number of rows of individual LED panels 
+#define VDISP_NUM_ROWS      2 // Number of rows of individual LED panels, change to 1 for single panel
 #define VDISP_NUM_COLS      1
 #define PANEL_CHAIN_LEN     (VDISP_NUM_ROWS*VDISP_NUM_COLS)
-#define PANEL_CHAIN_TYPE CHAIN_NONE
+#define PANEL_CHAIN_TYPE CHAIN_BOTTOM_RIGHT_UP // change to CHAIN_NONE for single panel
 #define PANEL_SCAN_TYPE  FOUR_SCAN_40PX_HIGH
 MatrixPanel_I2S_DMA *dma_display = nullptr;
 using MyScanTypeMapping = ScanTypeMapping<PANEL_SCAN_TYPE>;
@@ -51,14 +52,14 @@ const char* password = "ucD8KFvW  ";
 WebServer server(80);
 
 // Text to display
-String currentText = "READY";
+String currentText = "Initializing....";
 
 void handleDisplayPost() {
   if (server.method() != HTTP_POST) {
     server.send(405, "text/plain", "Method Not Allowed");
     return;
   }
-
+  
   String body = server.arg("plain");
 
   // Parse JSON
@@ -85,10 +86,11 @@ void handleDisplayPost() {
 }
 
 void drawTextOnPanel() {
+  virtualDisp->setFont(&FreeSans9pt7b);
   virtualDisp->fillScreen(0);
-  virtualDisp->setCursor(0, 2);
-  virtualDisp->setTextSize(2.5);
-  virtualDisp->setTextColor(dma_display->color565(255, 255, 255));
+  virtualDisp->setCursor(0, 30);
+  virtualDisp->setTextSize(0.5);
+  virtualDisp->setTextColor(dma_display->color565(0, 255, 255));
   virtualDisp->clearScreen();
   virtualDisp->print(currentText);
 }
@@ -101,7 +103,7 @@ void setup() {
   mxconfig.clkphase = false;
   dma_display = new MatrixPanel_I2S_DMA(mxconfig);
   dma_display->begin();
-  dma_display->setBrightness8(128); //0-255
+  dma_display->setBrightness8(50); //0-255
   dma_display->clearScreen();
   virtualDisp = new VirtualMatrixPanel_T<PANEL_CHAIN_TYPE, MyScanTypeMapping>(VDISP_NUM_ROWS, VDISP_NUM_COLS, PANEL_RES_X, PANEL_RES_Y);
   virtualDisp->setDisplay(*dma_display);
@@ -119,20 +121,24 @@ void setup() {
 
   Serial.println("Connecting to saved WiFi...");
 
-  bool res = wm.autoConnect("ShauryasNet-jiofi", "ucD8KFvW");
-  // AP name: MatrixMaestro-Setup
-  // password: 12345678 (you can remove the password if you want open AP)
+  bool res = wm.autoConnect("ESP-Wait10Sec-192.168.4.1");
+  delay(1000);
 
   if (!res) {
-    Serial.println("Failed to connect. Rebooting...");
-    delay(2000);
+    Serial.println(F("Failed to connect or setup timeout. Restarting..."));
+    currentText = "starting in AP mode";
+    drawTextOnPanel();
     ESP.restart();
+  } else {
+    Serial.println(F("Connected to WiFi!"));
+    Serial.println(WiFi.SSID());
   }
 
   Serial.println("WiFi connected!");
   Serial.print("IP: ");
   Serial.println(WiFi.localIP());
-
+  currentText=WiFi.localIP().toString();
+  drawTextOnPanel();
   // Start MDNS
   if (MDNS.begin("matrixmaestro-esp32")) {
     Serial.println("mDNS responder started: http://matrixmaestro-esp32.local");
@@ -149,7 +155,22 @@ void setup() {
       server.send(404, "text/plain", "Not found");
     }
   });
-  server.on("/display", handleDisplayPost);
+  // OPTIONS preflight handler
+    server.on("/display", HTTP_OPTIONS, []() {
+        server.sendHeader("Access-Control-Allow-Origin", "*");
+        server.sendHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+        server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+        server.send(204);
+    });
+
+    // POST handler
+    server.on("/display", HTTP_POST, []() {
+        server.sendHeader("Access-Control-Allow-Origin", "*");
+        server.sendHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+        server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+
+        handleDisplayPost();
+    });
   server.begin();
   Serial.println(F("Webserver started..."));
 }

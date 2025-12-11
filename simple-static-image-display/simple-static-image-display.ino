@@ -1,6 +1,8 @@
 #include "display_config.h"
 #include "snowfall.h"
 #include "framedefinition.h"
+#include "reveal_shader.h"
+#include "reveal_shader_presets.h"
 
 #define VDISP_NUM_ROWS 2
 #define VDISP_NUM_COLS 1
@@ -47,8 +49,15 @@ void setup() {
   virtualDisp->setDisplay(*dma_display);
 
   initSnowfall();
+  RevealParams p = preset_radial_slow();
+  reveal_init(p);
+
+  // Start reveal and snowfall together
+  reveal_start();
+  initSnowfall();
 }
 
 void loop() {
+  reveal_update();
   updateSnowfall();
 }

@@ -86,7 +86,7 @@ void handleDisplayPost() {
 }
 
 void drawTextOnPanel() {
-  virtualDisp->setFont(&FreeSans24pt7b);
+  //virtualDisp->setFont(&FreeSans24pt7b);
   virtualDisp->fillScreen(0);
   virtualDisp->setCursor(0, 30);
   virtualDisp->setTextSize(1);

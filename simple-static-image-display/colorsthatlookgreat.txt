@@ -1,0 +1,10 @@
+These combinations maximize brightness + contrast:
+
+Color	RGB Value	Use Case
+Bright Red	(255, 0, 0)	Numbers, alerts
+Bright Green	(0, 255, 0)	Icons, animations
+Bright Yellow	(255, 255, 0)	Headlines
+Cyan	(0, 255, 255)	Accents
+Orange	(255, 128, 0)	Scoreboards
+Sky Blue	(0, 128, 255)	Soft titles
+White	(255, 255, 255)	Backgrounds, outlines
